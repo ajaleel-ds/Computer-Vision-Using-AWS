@@ -1,5 +1,3 @@
-#TODO: Import your dependencies.
-#For instance, below are some dependencies you might need if you are using Pytorch
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,17 +29,82 @@ def train(model, train_loader, criterion, optimizer):
     
 def net():
     '''
-    TODO: Complete this function that initializes your model
-          Remember to use a pretrained model
+    Initializes pre-trained model
     '''
-    pass
+    
+    model = models.resnet50(pretrained=True) # Pulling in a pre-trained model
+
+    for param in model.parameters():
+        param.requires_grad = False   # Freezing convoluational layers
+    
+    num_features=model.fc.in_features # See the number of features present in the model, so we know how to add the Fully Connected layer at the end 
+    model.fc = nn.Sequential(
+                   nn.Linear(num_features, 133))
+    return model
 
 def create_data_loaders(data, batch_size):
-    '''
-    This is an optional function that you may or may not need to implement
-    depending on whether you need to use data loaders or not
-    '''
-    pass
+    
+    # Dataset paths
+    
+    training_path = os.path.join(data, 'train')
+    testing_path = os.path.join(data, 'test')
+    validating_path = os.path.join(data, 'valid')
+    
+    
+    # Configuring Image Transformers 
+    
+    train_transform = transforms.Compose([
+        transforms.Resize((224, 224)), # Images standardzied to 224 X 224 for training. 
+        transforms.RandomHorizontalFlip(), # To prevent potential possible biases in the training model.
+        transforms.ToTensor(), # Converting to a tensor (a multi-dimensional array).
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)) # Normalizing the data -> image = (image - mean) / std
+    ])
+
+    test_transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+    
+    # Creating the Datasets
+    
+    train_data = torchvision.datasets.ImageFolder(
+        root = training_path,
+        transform = train_transform
+    )
+        
+    test_data = torchvision.datasets.ImageFolder(
+        root = testing_path,
+        transform = test_transform
+    )
+    
+    validation_data = torchvision.datasets.ImageFolder(
+        root = validating_path,
+        transform = test_transform,
+    )
+        
+    # Data Loaders
+        
+    train_loader = torch.utils.data.DataLoader(
+        train_data,
+        batch_size = batch_size,
+        shuffle = True,
+    )   
+    
+    test_loader = torch.utils.data.DataLoader(
+        test_data,
+        batch_size = batch_size,
+        shuffle = False,
+    )
+    
+     validation_loader = torch.utils.data.DataLoader(
+        validation_data,
+        batch_size = batch_size,
+        shuffle = False,
+    )   
+    
+    
+    return train_loader, test_loader, validation_loader
 
 def main(args):
     '''
